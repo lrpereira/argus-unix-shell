@@ -37,7 +37,7 @@ void run_task(char *buffer);
 void cli_mode();
 
 /**
-   Auxiliar library funs definitions (lib.c).
+   Auxiliar library funs definition (lib.c).
 */
 void help_daemon(int argc);
 void help_client();

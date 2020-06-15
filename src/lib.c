@@ -1,7 +1,4 @@
 #include "argus.h"
-#include <fcntl.h>
-#include <stdio.h>
-#include <unistd.h>
 
 void help_daemon(int argc) {
   if (argc != 1) {

@@ -1,10 +1,16 @@
 #include "argus.h"
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
+
+int timeout = 0;
+int childs_done = 0;
+
+void child_handler() {childs_done++;}
+void alarm_handler() {timeout = 1;}
 
 int inactivity_timeout = 0;
 int execution_timeout = 0;
+
 int command_counter = 0;
 
 void set_inactivity_timeout(char *buffer, char* channel) {
@@ -39,6 +45,7 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
   int i=0, j=0, status, fd_out;
   int first_cmd = TRUE, last_cmd = FALSE, single_cmd = FALSE;
   pid_t pid;
+  pid_t childs[task_pipes+1];
 
   if (task_pipes==0) single_cmd = TRUE;
 
@@ -60,7 +67,7 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
       clean_command(task_parsed[i]);
       char** run = parse_command(task_parsed[i]);
 
-      /* printf("\nChild => I: %d PID: %d, Cmd: %s\n", i, getpid(), task_parsed[i]); */
+      printf("\nChild => I: %d PID: %d, Cmd: %s\n", i, getpid(), task_parsed[i]); fflush(stdout);
 
       /* There is only 1 command to execvp */
       if (single_cmd == TRUE) {
@@ -127,20 +134,64 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
     }
 
     /* Parent controling execution */
+    childs[i]=pid;
+    printf("CHILD PID:%d\n",childs[i]); fflush(stdout);
+
     if (first_cmd==TRUE) first_cmd = FALSE;
     if (i+1==task_pipes) last_cmd = TRUE;
     i++;
   }
 
-  /* Parent pid closes all pipes and waits for childs */
-  for (j=0; j<2*task_pipes; ++j) close(pipes[j]);
+  /* Parent pid closes all pipes */
+  for (j=0; j<2*task_pipes; ++j)
+    close(pipes[j]);
+
+  /* If execution_timeout equals 0 then no alarm is set */
+  signal(SIGALRM, alarm_handler);
+  signal(SIGCHLD, child_handler);
+
+  alarm(execution_timeout);
 
   if (single_cmd == TRUE) {
-    wait(&status);
+    pause();
+
+    if (timeout) {
+      printf("Task execution timed out.\n"); fflush(stdout);
+      int result = waitpid(pid, NULL, WNOHANG);
+      if (result == 0) {
+        /* Kill child pid */
+        kill(pid, 9);
+        wait(&status);
+      }
+    }
+    else if (childs_done) {
+      printf("Execvp finished normally.\n"); fflush(stdout);
+      wait(&status);
+    }
   }
   else {
-    for (j=0; j<2*task_pipes; ++j)
-      wait(&status);
+    /* for (j=0; j<task_pipes+1; ++j) */
+    pause();
+
+    if (timeout) {
+      printf("Task execution timed out.\n"); fflush(stdout);
+      int result[task_pipes+1];
+      for (j=0; j<task_pipes+1; j++) {
+        result[i]=waitpid(pid, NULL, WNOHANG);
+        if (result[i] == 0) {
+          /* Kill child pid */
+          kill(pid, 9);
+          wait(&status);
+        }
+      }
+    }
+    else if (childs_done==task_pipes+1) {
+      printf("Entrou.\n"); fflush(stdout);
+      for (j=0; j<task_pipes+1; ++j) {
+        wait(&status);
+        printf("Execvp finished normally:%d.\n", j); fflush(stdout);
+      }
+    }
   }
 }
 
@@ -160,15 +211,15 @@ int main(int argc, char *argv[])
   char buffer[BUFFERSIZE];
   char* task_parsed[10];
 
-  char* channel_input  = "./bin/channel_input";
-  char* channel_output = "./bin/channel_output";
+  char* channel_input  = "channel_input";
+  char* channel_output = "channel_output";
 
   create_channel(channel_input);
   create_channel(channel_output);
 
   while (1) {
 
-    printf("Waiting for client...\n");
+    printf("\nWaiting for client...\n");
     receive_message(channel_input, buffer);
     printf("Client connected.\n\n");
 
@@ -182,6 +233,8 @@ int main(int argc, char *argv[])
     switch (task_opt) {
     case 900:
       exec_task(task_parsed, task_pipes, channel_output);
+      timeout = 0;
+      childs_done = 0;
       break;
     case 901:
       set_inactivity_timeout(task_parsed[0], channel_output);

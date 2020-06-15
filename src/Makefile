@@ -3,11 +3,10 @@ BIN_SERVER = argusd
 BIN_CLIENT = argus
 CXXFLAGS	 = -Wall -Wextra -g
 ####################################################################################
-SRC_DIR		 = src
-BIN_DIR		 = bin
-SRC_SERVER = $(SRC_DIR)/argusd.c
-SRC_CLIENT = $(SRC_DIR)/argus.c
-SRC_LIB		 = $(SRC_DIR)/lib.c
+BIN_DIR		 = ../bin
+SRC_SERVER = argusd.c
+SRC_CLIENT = argus.c
+SRC_LIB		 = lib.c
 ####################################################################################
 
 all: argusd argus

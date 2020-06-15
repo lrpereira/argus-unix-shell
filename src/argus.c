@@ -15,8 +15,8 @@
 #include "argus.h"
 
 void set_inactivity_timelimit(char* buffer) {
-  char* channel_input  = "./bin/channel_input";
-  char* channel_output = "./bin/channel_output";
+  char* channel_input  = "channel_input";
+  char* channel_output = "channel_output";
 
   char* unparsed=strdup(buffer);
   char message[BUFFERSIZE];
@@ -26,8 +26,8 @@ void set_inactivity_timelimit(char* buffer) {
 }
 
 void set_execution_timelimit(char* buffer) {
-  char* channel_input  = "./bin/channel_input";
-  char* channel_output = "./bin/channel_output";
+  char* channel_input  = "channel_input";
+  char* channel_output = "channel_output";
 
   char* unparsed=strdup(buffer);
   char message[BUFFERSIZE];
@@ -42,8 +42,8 @@ void end_task_n() { printf("End task execution\n"); }
 
 void run_task(char* argv2) {
 
-  char* channel_input  = "./bin/channel_input";
-  char* channel_output = "./bin/channel_output";
+  char* channel_input  = "channel_input";
+  char* channel_output = "channel_output";
 
   char* unparsed=strdup(argv2);
   char message[BUFFERSIZE];
