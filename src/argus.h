@@ -13,6 +13,8 @@
 #define BUFFERSIZE 1024
 #define TRUE 111
 #define FALSE 222
+#define STDIN 0
+#define STDOUT 1
 
 /** LIB */
 void help_daemon(int argc);
@@ -20,6 +22,8 @@ void create_channel(char *channel);
 void clean_command(char* command);
 char **parse_command(char *command);
 void clean_quotes(char *command);
+int get_buffer_size(char *buffer);
+void set_string_end(char* string);
 
 /** SERVER */
 void exec_task(char *parsed[10], int task_pipes, char* channel_output);

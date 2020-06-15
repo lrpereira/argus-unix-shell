@@ -1,5 +1,4 @@
 #include "argus.h"
-#include <stdio.h>
 
 void help_daemon(int argc) {
   if (argc != 1) {
@@ -39,9 +38,9 @@ void clean_command(char *command) {
     for (int i=0; i<(int)strlen(command); ++i)
       command[i]=command[i+1];
   }
-  
+
   int size = strlen(command);
-  
+
   if (command[size-1]==' ')
     command[size-1]='\0';
 }
@@ -51,7 +50,7 @@ char** parse_command(char *command) {
 
   char* command_aux=strdup(command);
   char** aux=malloc(10 * sizeof(char*));
-  
+
   aux[i]=strsep(&command_aux," ");
   while (aux[i]!=NULL) {
     aux[++i]=strsep(&command_aux," ");
@@ -65,5 +64,17 @@ void clean_quotes(char *command) {
   for (i=0; i<(int)strlen(command); ++i) {
     command[i]=command[i+1];
   }
-  command[i-3]='\0';
+  command[i-2]='\0';
+}
+
+int get_buffer_size(char *buffer) {
+  int i;
+  for (i=0; buffer[i]!='\n'; ++i) {}
+  return i;
+}
+
+void set_string_end(char* string) {
+  int i;
+  for (i=0; string[i]!='\n'; i++) {}
+  string[i]='\0';
 }

@@ -14,7 +14,6 @@
 
 #include "argus.h"
 #include <stdio.h>
-#include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
@@ -42,19 +41,22 @@ void run_task(char* argv2) {
 
   fd_out = open(channel_output, O_RDONLY);
   receive_message(fd_out, message);
-  printf("%s", message);
+  /* write(STDOUT, message, get_buffer_size(message)); */
+  printf("%s\n", message);
   close(fd_out);
 }
 
 void cli_mode() {
 
-  char* prompt = "argus$ ";
-  char* buffer = malloc(1024 * sizeof(char));
-  char* token  = malloc(20 * sizeof(char));
+  char* buffer=(char*)malloc(BUFFERSIZE * sizeof(char));
+  char* token=(char*)malloc(20 * sizeof(char));
 
-  write(1, prompt, sizeof(prompt)-1);
+  printf("argus$ "); fflush(stdout);
 
-  while (read(0, buffer, 1024) != 0) {
+  while (read(STDIN, buffer, BUFFERSIZE) != 0) {
+
+    /* Set \0 in \n */
+    set_string_end(buffer);
 
     token=strsep(&buffer, " ");
 
@@ -62,8 +64,31 @@ void cli_mode() {
       clean_quotes(buffer);
       run_task(buffer);
     }
+    else if (strcmp(token, "tempo-inatividade")==0) {
+    }
+    else if (strcmp(token, "tempo-execução")==0) {
+    }
+    else if (strcmp(token, "listar")==0) {
+    }
+    else if (strcmp(token, "terminar")==0) {
+    }
+    else if (strcmp(token, "historico")==0) {
+    }
+    else if (strcmp(token, "ajuda")==0) {
+    }
+    else {
+      printf("Comando não reconhecido.\n");
+      help_client();
+    }
 
-    write(1, prompt, sizeof(prompt)-1);
+    /* write(STDOUT, buffer, get_buffer_size(buffer)); */
+    /* for (int i=0; buffer[i]!='\n'; i++) { */
+    /*   printf("%c", buffer[i]); */
+    /* } */
+
+    /* printf("%d %s", (int)strlen(buffer), buffer); */
+
+    printf("\nargus$ "); fflush(stdout);
   }
 }
 

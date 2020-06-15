@@ -1,4 +1,6 @@
 #include "argus.h"
+#include <stdio.h>
+#include <unistd.h>
 
 void parse_message(char *buffer, int *task_opt_ptr, int* task_pipes_ptr, char* parsed[10]) {
 
@@ -16,8 +18,13 @@ void parse_message(char *buffer, int *task_opt_ptr, int* task_pipes_ptr, char* p
 void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
 
   int i=0, j=0, status, fd_out;
-  int first_cmd = TRUE, last_cmd = FALSE;
+  int first_cmd = TRUE, last_cmd = FALSE, single_cmd = FALSE;
   pid_t pid;
+
+  printf("Task pipes %d\n", task_pipes);
+  if (task_pipes==0) {
+    single_cmd = TRUE;
+  }
 
   int pipes[2*task_pipes];
 
@@ -37,36 +44,55 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
       clean_command(task_parsed[i]);
       char** run = parse_command(task_parsed[i]);
 
-      /* If not first command */
-      if (first_cmd == FALSE) {
+      printf("\nChild => I: %d PID: %d, Cmd: %s\n", i, getpid(), task_parsed[i]);
 
-        /* If not first comment and is last comment */
-        if (last_cmd == TRUE) {
-          fd_out = open(channel_output, O_WRONLY);
-
-          /* Redirect output of execvp to FIFO */
-          if (dup2(fd_out, 1)<0) {perror("1st Dup2 Last"); exit(EXIT_FAILURE);}
-
-          /* Redirect standard input to read end of pipe */
-          if (dup2(pipes[(i-1)*2], 0)<0) {perror("1st Dup2 Last"); exit(EXIT_FAILURE);}
-
-          close(fd_out);
-        }
-
-        /* If not first and not last command */
-        else {
-          if (dup2(pipes[(i-1)*2], 0)<0) {perror("1st Dup2"); exit(EXIT_FAILURE);}
-        }
+      /* There is only 1 command to execvp */
+      if (single_cmd == TRUE) {
+        printf("Single command.\n");
+        fd_out = open(channel_output, O_WRONLY);
+        if (dup2(fd_out, 1)<0) {perror("Dup2 Single"); exit(EXIT_FAILURE);}
+        close(fd_out);
       }
 
-      /* If not last command */
-      if (last_cmd == FALSE) {
-        if (dup2(pipes[(i*2)+1], 1)<0) {perror("2nd Dup2"); exit(EXIT_FAILURE);}
+      /* There is two or more commands to execvp */
+      else if (single_cmd == FALSE) {
+
+        /* If not first command */
+        if (first_cmd == FALSE) {
+
+          /* If not first command and is last comment */
+          if (last_cmd == TRUE) {
+
+            /* Open server side fifo write end */
+            fd_out = open(channel_output, O_WRONLY);
+
+            /* Redirect output of execvp to FIFO */
+            if (dup2(fd_out, 1)<0) {perror("Dup2 Last FIFO"); exit(EXIT_FAILURE);}
+
+            /* Redirect standard input to read end of pipe */
+            if (dup2(pipes[(i-1)*2], 0)<0) {perror("Dup2 Last"); exit(EXIT_FAILURE);}
+
+            close(fd_out);
+          }
+
+          /* If not first and not last command */
+          else {
+
+            if (dup2(pipes[(i-1)*2], 0)<0) {perror("Dup2 not fst and not last"); exit(EXIT_FAILURE);}
+          }
+        }
+
+        /* If not last command */
+        if (last_cmd == FALSE) {
+
+          if (dup2(pipes[(i*2)+1], 1)<0) {perror("Dup2 not last"); exit(EXIT_FAILURE);}
+        }
       }
 
       /* Close all pipe fds */
       for (j=0; j<2*task_pipes; ++j) close(pipes[j]);
 
+      /* exit(0); */
       execvp(run[0], run);
       perror("Execvp");
     }
@@ -84,7 +110,14 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
 
   /* Parent pid closes all pipes and waits for childs */
   for (j=0; j<2*task_pipes; ++j) close(pipes[j]);
-  for (j=0; j<2*task_pipes; ++j) wait(&status);
+
+  if (single_cmd == TRUE) {
+    wait(&status);
+  }
+  else {
+    for (j=0; j<2*task_pipes; ++j)
+      wait(&status);
+  }
 }
 
 int main(int argc, char *argv[])
@@ -146,7 +179,7 @@ int main(int argc, char *argv[])
       break;
     }
 
-    /* fd_out = open(channel_output, O_WRONLY); */
+    /* int fd_out = open(channel_output, O_WRONLY); */
     /* send_message(fd_out, 1, buffer); */
     /* printf("\nServer msg sent: %s.\n\n", buffer); */
     /* close(fd_out); */
