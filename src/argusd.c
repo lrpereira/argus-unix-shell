@@ -23,7 +23,7 @@ void exec_task(char *task_parsed[10], int task_pipes) {
 
   for (i=0; i<task_pipes; i++ ) {
     if (pipe(pipes + i*2) < 0 ){
-      perror("Pipe"); exit(1);
+      perror("Pipe"); exit(EXIT_FAILURE);
     }
   }
 
@@ -42,40 +42,41 @@ void exec_task(char *task_parsed[10], int task_pipes) {
       /* printf("last cmd: %d\n", last_cmd); */
 
       /* If not first command */
-       /* && (task_parsed[i+1]!=NULL) */
       if (first_cmd == FALSE) {
-        printf("redirected read end to pipes(%d)\n",(i-1)*2);
-        if (dup2(pipes[(i-1)*2], 0)<0) perror("1st Dup2");
+        printf("dup2(pipes[%d], %d)\n", (i-1)*2, 0);
+        if (dup2(pipes[(i-1)*2], 0)<0) {perror("1st Dup2"); exit(EXIT_FAILURE);}
       }
 
       /* If not last command */
       if (last_cmd == FALSE) {
-        printf("redirected write end to pipes(%d)\n",(i*2)+1);
-        if (dup2(pipes[(i*2)+1], 1)<0) perror("2nd Dup2");
+        printf("dup2(pipes[%d], %d)\n", (i*2)+1, 1);
+        if (dup2(pipes[(i*2)+1], 1)<0) {perror("2nd Dup2"); exit(EXIT_FAILURE);}
       }
 
       /* Close all pipe fds */
       for (j=0; j<2*task_pipes; ++j) close(pipes[j]);
 
-      exit(0);
-      /* execvp(run[0], run); */
-      /* perror("Execvp"); */
+      /* exit(EXIT_SUCCESS); */
+      execvp(run[0], run);
+      perror("Execvp");
     }
 
-    else {
-
-      for (j=0; j<2*task_pipes; ++j) close(pipes[j]);
-      //wait(&status);
-      for (j=0; j<2*task_pipes; ++j) wait(&status);
-
-      if (first_cmd==TRUE) first_cmd = FALSE;
-
-      /* printf("PAI i: %d task_pipes: %d\n", i, task_pipes); */
-      if (i+1==task_pipes) last_cmd = TRUE;
-
-      i++;
+    else if (pid<0) {
+      perror("Forking");
+      exit(EXIT_FAILURE);
     }
+    
+    if (first_cmd==TRUE) first_cmd = FALSE;
+
+    /* printf("PAI i: %d task_pipes: %d\n", i, task_pipes); */
+    if (i+1==task_pipes) last_cmd = TRUE;
+
+    i++;
+    
   }
+  
+  for (j=0; j<2*task_pipes; ++j) close(pipes[j]);
+  for (j=0; j<2*task_pipes; ++j) wait(&status);
 }
 
 int main(int argc, char *argv[])
@@ -145,5 +146,5 @@ int main(int argc, char *argv[])
     buffer[0]='\0';
   }
 
-  exit(0);
+  exit(EXIT_SUCCESS);
 }
