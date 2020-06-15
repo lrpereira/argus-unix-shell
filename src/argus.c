@@ -9,7 +9,7 @@
    903 -> list tasks (-l OR listar)
    904 -> end task (-t n OR terminar n)
    905 -> history (-r OR historico)
-   906 -> help (-h OR ajuda)
+   906 -> help (-h OR ajuda) (Executado no client)
  */
 
 #include "argus.h"
@@ -83,6 +83,7 @@ void cli_mode() {
     else if (strcmp(token, "historico")==0) {
     }
     else if (strcmp(token, "ajuda")==0) {
+      help_client();
     }
     else {
       printf("Comando não reconhecido.\n");

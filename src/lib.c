@@ -16,6 +16,7 @@ void help_client() {
   printf("tempo-inatividade n (n segs)\ntempo-execução n (n segs)\n");
   printf("executar \"p1 | p2 | ... | pn\"\n");
   printf("listar\nterminar n (número da tarefa)\nhistórico\najuda\n");
+  fflush(stdout);
 }
 
 void create_channel(char *channel) {
