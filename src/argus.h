@@ -21,7 +21,7 @@ void clean_command(char* command);
 char** parse_command(char *command);
 
 /** SERVER */
-void exec_task(char *parsed[10], int task_pipes);
+void exec_task(char *parsed[10], int task_pipes, char* channel_output);
 void parse_message(char *buffer, int *task_opt, int *task_pipes_ptr,
                    char *parsed[10]);
 

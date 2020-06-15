@@ -1,4 +1,6 @@
 #include "argus.h"
+#include <stdio.h>
+#include <unistd.h>
 
 void parse_message(char *buffer, int *task_opt_ptr, int* task_pipes_ptr, char* parsed[10]) {
 
@@ -13,9 +15,9 @@ void parse_message(char *buffer, int *task_opt_ptr, int* task_pipes_ptr, char* p
   (*task_pipes_ptr)=i-1;
 }
 
-void exec_task(char *task_parsed[10], int task_pipes) {
+void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
 
-  int i=0, j=0, status;
+  int i=0, j=0, status, fd_out;
   int first_cmd = TRUE, last_cmd = FALSE;
   pid_t pid;
 
@@ -43,8 +45,18 @@ void exec_task(char *task_parsed[10], int task_pipes) {
 
       /* If not first command */
       if (first_cmd == FALSE) {
-        printf("dup2(pipes[%d], %d)\n", (i-1)*2, 0);
-        if (dup2(pipes[(i-1)*2], 0)<0) {perror("1st Dup2"); exit(EXIT_FAILURE);}
+        if (last_cmd == TRUE) {
+          fd_out = open(channel_output, O_WRONLY);
+          printf("dup2(%d, %d)\n", fd_out, 0);
+          printf("dup2(pipes[%d], %d)\n", (i-1)*2, 0);
+          if (dup2(fd_out, 1)<0) {perror("1st Dup2 Last"); exit(EXIT_FAILURE);}
+          if (dup2(pipes[(i-1)*2], 0)<0) {perror("1st Dup2 Last"); exit(EXIT_FAILURE);}
+          close(fd_out);
+        }
+        else {
+          printf("dup2(pipes[%d], %d)\n", (i-1)*2, 0);
+          if (dup2(pipes[(i-1)*2], 0)<0) {perror("1st Dup2"); exit(EXIT_FAILURE);}
+        }
       }
 
       /* If not last command */
@@ -56,9 +68,9 @@ void exec_task(char *task_parsed[10], int task_pipes) {
       /* Close all pipe fds */
       for (j=0; j<2*task_pipes; ++j) close(pipes[j]);
 
-      /* exit(EXIT_SUCCESS); */
+      //exit(EXIT_SUCCESS);
       execvp(run[0], run);
-      perror("Execvp");
+      perror("/* Execvp");
     }
 
     else if (pid<0) {
@@ -119,7 +131,7 @@ int main(int argc, char *argv[])
 
     switch (task_opt) {
     case 900:
-      exec_task(task_parsed, task_pipes);
+      exec_task(task_parsed, task_pipes, channel_output);
       break;
     case 901:
       break;
@@ -138,10 +150,10 @@ int main(int argc, char *argv[])
       break;
     }
 
-    fd_out = open(channel_output, O_WRONLY);
-    send_message(fd_out, 1, buffer);
-    printf("\nServer msg sent: %s.\n\n", buffer);
-    close(fd_out);
+    /* fd_out = open(channel_output, O_WRONLY); */
+    /* send_message(fd_out, 1, buffer); */
+    /* printf("\nServer msg sent: %s.\n\n", buffer); */
+    /* close(fd_out); */
 
     buffer[0]='\0';
   }

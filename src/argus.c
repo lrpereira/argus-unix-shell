@@ -14,7 +14,6 @@
 
 #include "argus.h"
 #include <stdio.h>
-#include <unistd.h>
 
 void list_running_execs() { printf("List_running_execs\n"); }
 void history() { printf("History\n"); }
@@ -40,7 +39,9 @@ void run_task(char* argv2) {
   printf("Client msg sent: %s\n", unparsed);
   close(fd_in);
 
+  printf("Waiting to read\n");
   fd_out = open(channel_output, O_RDONLY);
+  printf("Starting to read\n");
   receive_message(fd_out, message);
   printf("Client msg received: %s\n", message);
   close(fd_out);
