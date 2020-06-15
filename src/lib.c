@@ -1,10 +1,21 @@
 #include "argus.h"
+#include <fcntl.h>
+#include <stdio.h>
+#include <unistd.h>
 
 void help_daemon(int argc) {
   if (argc != 1) {
     fprintf(stderr, "No args needed.\nExiting...\n");
     exit(-1);
   }
+}
+
+void help_client() {
+  printf("Help Client\n");
+  printf("CLI mode options:\n");
+  printf("tempo-inatividade n (n segs)\ntempo-execução n (n segs)\n");
+  printf("executar \"p1 | p2 | ... | pn\"\n");
+  printf("listar\nterminar n (número da tarefa)\nhistórico\najuda\n");
 }
 
 void create_channel(char *channel) {
@@ -18,29 +29,27 @@ void create_channel(char *channel) {
   }
 }
 
-void help_client() {
-  printf("Help client\n");
-}
-
-void send_message(int fd, int token, char *message) {
+void send_message(char* channel, int token, char *message) {
+  int fd = open(channel, O_WRONLY);
   char msg[BUFFERSIZE];
   sprintf(msg, "%d-%s", token, message);
   write(fd, msg, strlen(msg)+1);
+  close(fd);
 }
 
-void receive_message(int fd, char* message) {
-  read(fd, message, 1024);
+void receive_message(char* channel, char* buffer) {
+  int fd = open(channel, O_RDONLY);
+  read(fd, buffer, 1024);
+  printf("%s\n", buffer);
+  close(fd);
 }
 
 void clean_command(char *command) {
-
   if (command[0]==' ') {
     for (int i=0; i<(int)strlen(command); ++i)
       command[i]=command[i+1];
   }
-
   int size = strlen(command);
-
   if (command[size-1]==' ')
     command[size-1]='\0';
 }

@@ -13,21 +13,34 @@
  */
 
 #include "argus.h"
-#include <stdio.h>
-#include <string.h>
-#include <unistd.h>
 
-void list_running_execs() { printf("List_running_execs\n"); }
+void set_inactivity_timelimit(char* buffer) {
+  char* channel_input  = "./bin/channel_input";
+  char* channel_output = "./bin/channel_output";
+
+  char* unparsed=strdup(buffer);
+  char message[BUFFERSIZE];
+
+  send_message(channel_input, 901, unparsed);
+  receive_message(channel_output, message);
+}
+
+void set_execution_timelimit(char* buffer) {
+  char* channel_input  = "./bin/channel_input";
+  char* channel_output = "./bin/channel_output";
+
+  char* unparsed=strdup(buffer);
+  char message[BUFFERSIZE];
+
+  send_message(channel_input, 902, unparsed);
+  receive_message(channel_output, message);
+}
+
 void history() { printf("History\n"); }
-
-void set_inactivity_timelimit() { printf("Set inactivity time\n"); }
-void set_execution_timelimit() { printf("Set execution time\n"); }
+void list_running_execs() { printf("List_running_execs\n"); }
 void end_task_n() { printf("End task execution\n"); }
 
 void run_task(char* argv2) {
-
-  int fd_in;
-  int fd_out;
 
   char* channel_input  = "./bin/channel_input";
   char* channel_output = "./bin/channel_output";
@@ -35,15 +48,8 @@ void run_task(char* argv2) {
   char* unparsed=strdup(argv2);
   char message[BUFFERSIZE];
 
-  fd_in = open(channel_input, O_WRONLY);
-  send_message(fd_in, 900, unparsed);
-  close(fd_in);
-
-  fd_out = open(channel_output, O_RDONLY);
-  receive_message(fd_out, message);
-  /* write(STDOUT, message, get_buffer_size(message)); */
-  printf("%s\n", message);
-  close(fd_out);
+  send_message(channel_input, 900, unparsed);
+  receive_message(channel_output, message);
 }
 
 void cli_mode() {
@@ -65,8 +71,10 @@ void cli_mode() {
       run_task(buffer);
     }
     else if (strcmp(token, "tempo-inatividade")==0) {
+      set_inactivity_timelimit(buffer);
     }
     else if (strcmp(token, "tempo-execução")==0) {
+      set_execution_timelimit(buffer);
     }
     else if (strcmp(token, "listar")==0) {
     }
@@ -80,13 +88,6 @@ void cli_mode() {
       printf("Comando não reconhecido.\n");
       help_client();
     }
-
-    /* write(STDOUT, buffer, get_buffer_size(buffer)); */
-    /* for (int i=0; buffer[i]!='\n'; i++) { */
-    /*   printf("%c", buffer[i]); */
-    /* } */
-
-    /* printf("%d %s", (int)strlen(buffer), buffer); */
 
     printf("\nargus$ "); fflush(stdout);
   }
@@ -110,22 +111,32 @@ int main(int argc, char *argv[])
   }
 
   if (argc==3) {
-    if (strcmp(argv[1], "-i")==0) {
+    if (strcmp(argv[1], "-e")==0) {
+      if (strlen(argv[2])>0) run_task(argv[2]);
+      else {
+        fprintf(stderr, "Invalid string.\nExiting...\n");
+        exit(1);
+      }
+    }
+
+    else if (strcmp(argv[1], "-i")==0) {
       n=atoi(argv[2]);
-      if (n>0) set_inactivity_timelimit();
+      if (n>0) set_inactivity_timelimit(argv[2]);
       else {
         fprintf(stderr, "Invalid number of seconds.\nExiting...\n");
         exit(1);
       }
     }
+
     else if (strcmp(argv[1], "-m")==0) {
       n=atoi(argv[2]);
-      if (n>0) set_execution_timelimit();
+      if (n>0) set_execution_timelimit(argv[2]);
       else {
         fprintf(stderr, "Invalid number of seconds.\nExiting...\n");
         exit(1);
       }
     }
+
     else if (strcmp(argv[1], "-t")==0) {
       n=atoi(argv[2]);
       if (n>0) end_task_n();
@@ -134,13 +145,7 @@ int main(int argc, char *argv[])
         exit(1);
       }
     }
-    else if (strcmp(argv[1], "-e")==0) {
-      if (strlen(argv[2])>0) run_task(argv[2]);
-      else {
-        fprintf(stderr, "Invalid string.\nExiting...\n");
-        exit(1);
-      }
-    }
+
     else {
       fprintf(stderr, "Unkown option.\nExiting...\n");
       exit(1);

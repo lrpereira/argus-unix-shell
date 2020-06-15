@@ -1,6 +1,25 @@
 #include "argus.h"
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
+
+int inactivity_timeout = 0;
+int execution_timeout = 0;
+int command_counter = 0;
+
+void set_inactivity_timeout(char *buffer, char* channel) {
+  char* message = "Inactivity timeout set";
+  inactivity_timeout=atoi(buffer);
+  command_counter++;
+  send_message(channel, command_counter, message);
+}
+
+void set_execution_timeout(char *buffer, char* channel) {
+  char* message = "Execution timeout set";
+  execution_timeout=atoi(buffer);
+  command_counter++;
+  send_message(channel, command_counter, message);
+}
 
 void parse_message(char *buffer, int *task_opt_ptr, int* task_pipes_ptr, char* parsed[10]) {
 
@@ -21,10 +40,7 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
   int first_cmd = TRUE, last_cmd = FALSE, single_cmd = FALSE;
   pid_t pid;
 
-  printf("Task pipes %d\n", task_pipes);
-  if (task_pipes==0) {
-    single_cmd = TRUE;
-  }
+  if (task_pipes==0) single_cmd = TRUE;
 
   int pipes[2*task_pipes];
 
@@ -44,7 +60,7 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
       clean_command(task_parsed[i]);
       char** run = parse_command(task_parsed[i]);
 
-      printf("\nChild => I: %d PID: %d, Cmd: %s\n", i, getpid(), task_parsed[i]);
+      /* printf("\nChild => I: %d PID: %d, Cmd: %s\n", i, getpid(), task_parsed[i]); */
 
       /* There is only 1 command to execvp */
       if (single_cmd == TRUE) {
@@ -128,13 +144,14 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
   }
 }
 
+/**
+   SERVER ENTRY POINT
+ */
 int main(int argc, char *argv[])
 {
   UNUSED(argv);
 
   help_daemon(argc);
-
-  int fd_in;
 
   int task_opt, task_pipes;
   int* task_opt_ptr=&task_opt;
@@ -152,27 +169,25 @@ int main(int argc, char *argv[])
   while (1) {
 
     printf("Waiting for client...\n");
-    fd_in  = open(channel_input, O_RDONLY);
+    receive_message(channel_input, buffer);
     printf("Client connected.\n\n");
-
-    receive_message(fd_in, buffer);
-    printf("Server msg received: %s\n\n", buffer);
-    close(fd_in);
 
     parse_message(buffer, task_opt_ptr, task_pipes_ptr, task_parsed);
 
     /* printf("Task opt: %d\nTask num pipes: %d\n", task_opt, task_pipes); */
     /* int i=0; */
-    /* while(parsed[i]!=NULL) */
-    /*   printf("%s\n", parsed[i++]); */
+    /* while(task_parsed[i]!=NULL) */
+    /*   printf("%s\n", task_parsed[i++]); */
 
     switch (task_opt) {
     case 900:
       exec_task(task_parsed, task_pipes, channel_output);
       break;
     case 901:
+      set_inactivity_timeout(task_parsed[0], channel_output);
       break;
     case 902:
+      set_execution_timeout(task_parsed[0], channel_output);
       break;
     case 903:
       break;
@@ -186,11 +201,6 @@ int main(int argc, char *argv[])
       printf("Error parsing option.\n");
       break;
     }
-
-    /* int fd_out = open(channel_output, O_WRONLY); */
-    /* send_message(fd_out, 1, buffer); */
-    /* printf("\nServer msg sent: %s.\n\n", buffer); */
-    /* close(fd_out); */
 
     buffer[0]='\0';
   }
