@@ -48,9 +48,14 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
 
       /* There is only 1 command to execvp */
       if (single_cmd == TRUE) {
-        printf("Single command.\n");
+
+        /* Open server side fifo write end */
         fd_out = open(channel_output, O_WRONLY);
+
+        /* Redirect output of execvp to FIFO */
         if (dup2(fd_out, 1)<0) {perror("Dup2 Single"); exit(EXIT_FAILURE);}
+
+        /* Close fifo */
         close(fd_out);
       }
 
@@ -66,18 +71,20 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
             /* Open server side fifo write end */
             fd_out = open(channel_output, O_WRONLY);
 
-            /* Redirect output of execvp to FIFO */
+            /* Redirect execvp output to FIFO */
             if (dup2(fd_out, 1)<0) {perror("Dup2 Last FIFO"); exit(EXIT_FAILURE);}
 
-            /* Redirect standard input to read end of pipe */
+            /* Redirects execvp input from stdin to read end of pipe */
             if (dup2(pipes[(i-1)*2], 0)<0) {perror("Dup2 Last"); exit(EXIT_FAILURE);}
 
+            /* Close fifo */
             close(fd_out);
           }
 
           /* If not first and not last command */
           else {
 
+            /* Redirects execvp input from stdin to read end of pipe */
             if (dup2(pipes[(i-1)*2], 0)<0) {perror("Dup2 not fst and not last"); exit(EXIT_FAILURE);}
           }
         }
@@ -85,6 +92,7 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
         /* If not last command */
         if (last_cmd == FALSE) {
 
+          /* Redirect execvp output to next execvp input */
           if (dup2(pipes[(i*2)+1], 1)<0) {perror("Dup2 not last"); exit(EXIT_FAILURE);}
         }
       }
@@ -102,7 +110,7 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
       exit(EXIT_FAILURE);
     }
 
-    /* Parent pid controling execution */
+    /* Parent controling execution */
     if (first_cmd==TRUE) first_cmd = FALSE;
     if (i+1==task_pipes) last_cmd = TRUE;
     i++;
