@@ -39,20 +39,20 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
 
       /* If not first command */
       if (first_cmd == FALSE) {
-        
+
         /* If not first comment and is last comment */
         if (last_cmd == TRUE) {
           fd_out = open(channel_output, O_WRONLY);
-          
+
           /* Redirect output of execvp to FIFO */
           if (dup2(fd_out, 1)<0) {perror("1st Dup2 Last"); exit(EXIT_FAILURE);}
-          
+
           /* Redirect standard input to read end of pipe */
           if (dup2(pipes[(i-1)*2], 0)<0) {perror("1st Dup2 Last"); exit(EXIT_FAILURE);}
 
           close(fd_out);
         }
-        
+
         /* If not first and not last command */
         else {
           if (dup2(pipes[(i-1)*2], 0)<0) {perror("1st Dup2"); exit(EXIT_FAILURE);}

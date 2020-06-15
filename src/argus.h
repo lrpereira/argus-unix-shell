@@ -18,7 +18,8 @@
 void help_daemon(int argc);
 void create_channel(char *channel);
 void clean_command(char* command);
-char** parse_command(char *command);
+char **parse_command(char *command);
+void clean_quotes(char *command);
 
 /** SERVER */
 void exec_task(char *parsed[10], int task_pipes, char* channel_output);

@@ -14,6 +14,9 @@
 
 #include "argus.h"
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 
 void list_running_execs() { printf("List_running_execs\n"); }
 void history() { printf("History\n"); }
@@ -34,7 +37,6 @@ void run_task(char* argv2) {
   char message[BUFFERSIZE];
 
   fd_in = open(channel_input, O_WRONLY);
-  printf("Client connected.\n");
   send_message(fd_in, 900, unparsed);
   close(fd_in);
 
@@ -44,7 +46,26 @@ void run_task(char* argv2) {
   close(fd_out);
 }
 
-void cli_mode() { printf("CLI mode.\n"); }
+void cli_mode() {
+
+  char* prompt = "argus$ ";
+  char* buffer = malloc(1024 * sizeof(char));
+  char* token  = malloc(20 * sizeof(char));
+
+  write(1, prompt, sizeof(prompt)-1);
+
+  while (read(0, buffer, 1024) != 0) {
+
+    token=strsep(&buffer, " ");
+
+    if (strcmp(token, "executar")==0) {
+      clean_quotes(buffer);
+      run_task(buffer);
+    }
+
+    write(1, prompt, sizeof(prompt)-1);
+  }
+}
 
 int main(int argc, char *argv[])
 {
