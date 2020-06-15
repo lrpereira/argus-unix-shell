@@ -1,0 +1,5 @@
+#!/bin/bash
+
+./argus -e "cut -f7 -d: /etc/passwd | uniq | wc -l"
+./argus -e "cut -f7 -d: /etc/passwd | uniq"
+./argus -e "cut -f7 -d: /etc/passwd"

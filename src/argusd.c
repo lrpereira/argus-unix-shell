@@ -1,11 +1,7 @@
 #include "argus.h"
-#include <stdio.h>
-#include <unistd.h>
 
 int timeout = 0;
-int childs_done = 0;
 
-void child_handler() {childs_done++;}
 void alarm_handler() {timeout = 1;}
 
 int inactivity_timeout = 0;
@@ -15,7 +11,8 @@ int command_counter = 0;
 
 void set_inactivity_timeout(char *buffer, char* channel) {
   char* message = "Inactivity timeout set";
-  inactivity_timeout=atoi(buffer);
+  /* inactivity_timeout=atoi(buffer); */
+  execution_timeout=atoi(buffer);
   command_counter++;
   send_message(channel, command_counter, message);
 }
@@ -67,7 +64,7 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
       clean_command(task_parsed[i]);
       char** run = parse_command(task_parsed[i]);
 
-      printf("\nChild => I: %d PID: %d, Cmd: %s\n", i, getpid(), task_parsed[i]); fflush(stdout);
+      /* printf("\nChild => I: %d PID: %d, Cmd: %s\n", i, getpid(), task_parsed[i]); fflush(stdout); */
 
       /* There is only 1 command to execvp */
       if (single_cmd == TRUE) {
@@ -135,8 +132,7 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
 
     /* Parent controling execution */
     childs[i]=pid;
-    printf("CHILD PID:%d\n",childs[i]); fflush(stdout);
-
+    /* printf("Parent pid:%d Child pid:%d\n", getppid(), childs[i]); */
     if (first_cmd==TRUE) first_cmd = FALSE;
     if (i+1==task_pipes) last_cmd = TRUE;
     i++;
@@ -147,52 +143,35 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
     close(pipes[j]);
 
   /* If execution_timeout equals 0 then no alarm is set */
-  signal(SIGALRM, alarm_handler);
-  signal(SIGCHLD, child_handler);
-
-  alarm(execution_timeout);
-
-  if (single_cmd == TRUE) {
+  if (execution_timeout) {
+    signal(SIGALRM, alarm_handler);
+    alarm(execution_timeout);
     pause();
-
-    if (timeout) {
-      printf("Task execution timed out.\n"); fflush(stdout);
-      int result = waitpid(pid, NULL, WNOHANG);
-      if (result == 0) {
-        /* Kill child pid */
-        kill(pid, 9);
-        wait(&status);
-      }
-    }
-    else if (childs_done) {
-      printf("Execvp finished normally.\n"); fflush(stdout);
-      wait(&status);
-    }
+    alarm(0);
   }
-  else {
-    /* for (j=0; j<task_pipes+1; ++j) */
-    pause();
 
-    if (timeout) {
-      printf("Task execution timed out.\n"); fflush(stdout);
-      int result[task_pipes+1];
-      for (j=0; j<task_pipes+1; j++) {
-        result[i]=waitpid(pid, NULL, WNOHANG);
-        if (result[i] == 0) {
-          /* Kill child pid */
-          kill(pid, 9);
-          wait(&status);
-        }
+  if (timeout) {
+    /* Pequeno bug aqui */
+    /* char* message="Timeout."; */
+    /* send_message(channel_output, command_counter, message); */
+    /**
+       WNOHANG causes the call to waitpid to return status information
+       immediately without waiting for the specified process to terminate
+    */
+    int result[i];
+    for (j=0; j<i; ++j) {
+      result[j] = waitpid(childs[j], NULL, WNOHANG);
+      if (result[j]==0) {
+        printf("Killing pid:%d\n", childs[j]); fflush(stdout);
+        kill(childs[j], SIGKILL);
       }
-    }
-    else if (childs_done==task_pipes+1) {
-      printf("Entrou.\n"); fflush(stdout);
-      for (j=0; j<task_pipes+1; ++j) {
-        wait(&status);
-        printf("Execvp finished normally:%d.\n", j); fflush(stdout);
+      else {
+        alarm(0);
       }
     }
   }
+
+  for (j=0; j<task_pipes+1; ++j) wait(&status);
 }
 
 /**
@@ -221,7 +200,7 @@ int main(int argc, char *argv[])
 
     printf("\nWaiting for client...\n");
     receive_message(channel_input, buffer);
-    printf("Client connected.\n\n");
+    printf("Client connected.\n");
 
     parse_message(buffer, task_opt_ptr, task_pipes_ptr, task_parsed);
 
@@ -234,7 +213,6 @@ int main(int argc, char *argv[])
     case 900:
       exec_task(task_parsed, task_pipes, channel_output);
       timeout = 0;
-      childs_done = 0;
       break;
     case 901:
       set_inactivity_timeout(task_parsed[0], channel_output);

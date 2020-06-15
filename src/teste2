@@ -1,0 +1,4 @@
+#!/bin/bash
+
+./argus -e "cat /etc/passwd | head -10 | tail -5"
+./argus -e "cat /etc/passwd | head -10"

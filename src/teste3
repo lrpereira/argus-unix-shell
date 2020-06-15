@@ -1,0 +1,5 @@
+#!/bin/bash
+
+./argus -m 3
+./argus -e "cat"
+./argus -e "cat | cat"

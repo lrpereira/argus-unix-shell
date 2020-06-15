@@ -73,7 +73,7 @@ void cli_mode() {
     else if (strcmp(token, "tempo-inatividade")==0) {
       set_inactivity_timelimit(buffer);
     }
-    else if (strcmp(token, "tempo-execução")==0) {
+    else if (strcmp(token, "tempo-execucao")==0) {
       set_execution_timelimit(buffer);
     }
     else if (strcmp(token, "listar")==0) {
@@ -131,7 +131,7 @@ int main(int argc, char *argv[])
 
     else if (strcmp(argv[1], "-m")==0) {
       n=atoi(argv[2]);
-      if (n>0) set_execution_timelimit(argv[2]);
+      if (n>=0) set_execution_timelimit(argv[2]);
       else {
         fprintf(stderr, "Invalid number of seconds.\nExiting...\n");
         exit(1);
