@@ -26,13 +26,10 @@ void send_message(int fd, int token, char *message) {
   char msg[BUFFERSIZE];
   sprintf(msg, "%d-%s", token, message);
   write(fd, msg, strlen(msg)+1);
-  /* perror("Writing"); */
 }
 
 void receive_message(int fd, char* message) {
   read(fd, message, 1024);
-  /* printf("message: %s\n", message); */
-  /* perror("Reading"); */
 }
 
 void clean_command(char *command) {
@@ -56,13 +53,8 @@ char** parse_command(char *command) {
   
   aux[i]=strsep(&command_aux," ");
   while (aux[i]!=NULL) {
-    //printf("%s\n", aux[i]);
     aux[++i]=strsep(&command_aux," ");
   }
-
-  /* for (i=0; aux[i]!=NULL; ++i) { */
-  /*   printf("%s\n",aux[i]); */
-  /* } */
 
   return aux;
 }

@@ -36,14 +36,11 @@ void run_task(char* argv2) {
   fd_in = open(channel_input, O_WRONLY);
   printf("Client connected.\n");
   send_message(fd_in, 900, unparsed);
-  printf("Client msg sent: %s\n", unparsed);
   close(fd_in);
 
-  printf("Waiting to read\n");
   fd_out = open(channel_output, O_RDONLY);
-  printf("Starting to read\n");
   receive_message(fd_out, message);
-  printf("Client msg received: %s\n", message);
+  printf("%s", message);
   close(fd_out);
 }
 

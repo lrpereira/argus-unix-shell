@@ -1,6 +1,4 @@
 #include "argus.h"
-#include <stdio.h>
-#include <unistd.h>
 
 void parse_message(char *buffer, int *task_opt_ptr, int* task_pipes_ptr, char* parsed[10]) {
 
@@ -39,54 +37,52 @@ void exec_task(char *task_parsed[10], int task_pipes, char* channel_output) {
       clean_command(task_parsed[i]);
       char** run = parse_command(task_parsed[i]);
 
-      printf("\nChild => I: %d PID: %d, Cmd: %s\n", i, getpid(), task_parsed[i]);
-      /* printf("first cmd: %d\n", first_cmd); */
-      /* printf("last cmd: %d\n", last_cmd); */
-
       /* If not first command */
       if (first_cmd == FALSE) {
+        
+        /* If not first comment and is last comment */
         if (last_cmd == TRUE) {
           fd_out = open(channel_output, O_WRONLY);
-          printf("dup2(%d, %d)\n", fd_out, 0);
-          printf("dup2(pipes[%d], %d)\n", (i-1)*2, 0);
+          
+          /* Redirect output of execvp to FIFO */
           if (dup2(fd_out, 1)<0) {perror("1st Dup2 Last"); exit(EXIT_FAILURE);}
+          
+          /* Redirect standard input to read end of pipe */
           if (dup2(pipes[(i-1)*2], 0)<0) {perror("1st Dup2 Last"); exit(EXIT_FAILURE);}
+
           close(fd_out);
         }
+        
+        /* If not first and not last command */
         else {
-          printf("dup2(pipes[%d], %d)\n", (i-1)*2, 0);
           if (dup2(pipes[(i-1)*2], 0)<0) {perror("1st Dup2"); exit(EXIT_FAILURE);}
         }
       }
 
       /* If not last command */
       if (last_cmd == FALSE) {
-        printf("dup2(pipes[%d], %d)\n", (i*2)+1, 1);
         if (dup2(pipes[(i*2)+1], 1)<0) {perror("2nd Dup2"); exit(EXIT_FAILURE);}
       }
 
       /* Close all pipe fds */
       for (j=0; j<2*task_pipes; ++j) close(pipes[j]);
 
-      //exit(EXIT_SUCCESS);
       execvp(run[0], run);
-      perror("/* Execvp");
+      perror("Execvp");
     }
 
     else if (pid<0) {
       perror("Forking");
       exit(EXIT_FAILURE);
     }
-    
+
+    /* Parent pid controling execution */
     if (first_cmd==TRUE) first_cmd = FALSE;
-
-    /* printf("PAI i: %d task_pipes: %d\n", i, task_pipes); */
     if (i+1==task_pipes) last_cmd = TRUE;
-
     i++;
-    
   }
-  
+
+  /* Parent pid closes all pipes and waits for childs */
   for (j=0; j<2*task_pipes; ++j) close(pipes[j]);
   for (j=0; j<2*task_pipes; ++j) wait(&status);
 }
@@ -97,7 +93,7 @@ int main(int argc, char *argv[])
 
   help_daemon(argc);
 
-  int fd_in, fd_out;
+  int fd_in;
 
   int task_opt, task_pipes;
   int* task_opt_ptr=&task_opt;
